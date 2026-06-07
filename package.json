@@ -1,0 +1,39 @@
+{
+  "name": "cf-builder",
+  "version": "1.0.0",
+  "description": "キャッシュフロー計算書作成ツール",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.cfbuilder.app",
+    "productName": "CF Builder",
+    "copyright": "CF Builder",
+    "files": [
+      "main.js",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "CF-Builder-Portable.exe"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "dmg": {
+      "artifactName": "CF-Builder-Mac.dmg"
+    }
+  }
+}

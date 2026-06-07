@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CF Builder — キャッシュフロー計算書作成ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F5F0; --surface: #FFFFFF; --surface2: #F0EDE6;
+    --border: #E2DDD4; --border2: #CEC9BE;
+    --text: #1A1814; --text2: #6B6660; --text3: #9E9890;
+    --accent: #1A3A2A; --accent-light: #E8F0EC; --accent-mid: #2D6B4A;
+    --amber: #8C5E00; --amber-bg: #FFF3D6;
+    --blue: #1A3060; --blue-bg: #EBF0FA;
+    --red: #8C1A1A; --red-bg: #FAEBEB;
+    --green: #1A4A2A; --green-bg: #E8F5EC;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  html { font-size: 15px; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+  header { background: var(--accent); color: #fff; padding: 0 2rem; height: 56px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: #fff; }
+  .header-sub { font-size: 0.72rem; color: rgba(255,255,255,0.55); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 4px; }
+  .header-badge { margin-left: auto; font-size: 0.7rem; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); padding: 3px 10px; border-radius: 99px; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .stepper { display: flex; align-items: center; margin-bottom: 2.5rem; }
+  .step-item { display: flex; align-items: center; gap: 10px; }
+  .step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; transition: all 0.3s; }
+  .step-circle.active { background: var(--accent); color: #fff; }
+  .step-circle.done { background: var(--accent-mid); color: #fff; }
+  .step-circle.inactive { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+  .step-text { font-size: 0.82rem; }
+  .step-name { font-weight: 500; color: var(--text); }
+  .step-name.inactive { color: var(--text3); }
+  .step-line { flex: 1; height: 1px; background: var(--border2); margin: 0 12px; }
+
+  .panel { display: none; animation: fadeIn 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .panel-header { margin-bottom: 1.75rem; }
+  .panel-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 0.35rem; }
+  .panel-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.7; }
+
+  .upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.75rem; }
+  .upload-card { position: relative; background: var(--surface); border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 1.25rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-card:hover { border-color: var(--accent-mid); background: var(--accent-light); transform: translateY(-2px); }
+  .upload-card.filled { border-style: solid; border-color: var(--accent-mid); background: var(--accent-light); }
+  .upload-card input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon-wrap { width: 44px; height: 44px; background: var(--surface2); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 1.25rem; }
+  .upload-card.filled .upload-icon-wrap { background: rgba(45,107,74,0.15); }
+  .upload-card-label { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
+  .upload-card-sub { font-size: 0.75rem; color: var(--text3); }
+  .upload-filename { margin-top: 8px; font-size: 0.75rem; font-family: 'DM Mono', monospace; color: var(--accent-mid); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .check-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; background: var(--green-bg); color: var(--green); padding: 2px 8px; border-radius: 99px; margin-top: 6px; }
+
+  .info-banner { display: flex; gap: 10px; background: var(--blue-bg); border-left: 3px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 14px; font-size: 0.8rem; color: var(--blue); margin-bottom: 1.75rem; line-height: 1.6; }
+  .warn-banner { display: flex; gap: 10px; background: var(--red-bg); border-left: 3px solid var(--red); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 14px; font-size: 0.8rem; color: var(--red); margin-bottom: 1.5rem; line-height: 1.6; }
+  .ok-banner { display: flex; gap: 10px; background: var(--green-bg); border-left: 3px solid var(--accent-mid); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 14px; font-size: 0.8rem; color: var(--green); margin-bottom: 1.5rem; line-height: 1.6; }
+
+  .sub-section { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+
+  /* ファイル列設定 */
+  .file-config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .file-config-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .file-config-label { font-size: 0.75rem; font-weight: 700; color: var(--text2); margin-bottom: 8px; }
+  .file-config-row { margin-bottom: 6px; }
+  .file-config-sublabel { font-size: 0.7rem; color: var(--text3); margin-bottom: 3px; }
+
+  select { width: 100%; font-size: 0.82rem; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6660'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  select:focus { outline: none; border-color: var(--accent-mid); }
+  select.compact { font-size: 0.75rem; padding: 4px 24px 4px 6px; }
+
+  /* マッピングテーブル */
+  .mapping-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.5rem; }
+  .mapping-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .mapping-table thead { background: var(--surface2); }
+  .mapping-table th { padding: 10px 12px; text-align: left; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); }
+  .mapping-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .mapping-table tr:last-child td { border-bottom: none; }
+  .mapping-table tr:hover td { background: var(--bg); }
+  .cf-item-name { font-weight: 500; }
+  .cf-item-req { font-size: 0.68rem; color: var(--red); font-weight: 700; margin-left: 4px; }
+  .cf-item-opt { font-size: 0.68rem; color: var(--text3); margin-left: 4px; }
+  .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .tag-pl { background: var(--blue-bg); color: var(--blue); }
+  .tag-bs { background: #EDE8FA; color: #3A2080; }
+  .tag-schedule { background: var(--amber-bg); color: var(--amber); }
+
+  /* シート選択セル（内訳書用） */
+  .sheet-select-wrap { margin-bottom: 4px; }
+  .sheet-select-label { font-size: 0.68rem; color: var(--text3); margin-bottom: 2px; }
+
+  /* プレビューバッジ */
+  .preview-val { display: inline-block; font-family: 'DM Mono', monospace; font-size: 0.78rem; background: var(--green-bg); color: var(--green); padding: 1px 8px; border-radius: 99px; font-weight: 700; }
+  .preview-val.missing { background: var(--red-bg); color: var(--red); }
+
+  /* 進捗 */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text2); margin-bottom: 6px; }
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent-mid); border-radius: 99px; transition: width 0.4s ease; }
+
+  /* ボタン */
+  .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn-primary:hover { background: var(--accent-mid); }
+  .btn-secondary { background: transparent; }
+  .btn-export { background: var(--blue); color: #fff; border-color: transparent; }
+  .btn-export:hover { background: #2a4a90; }
+  .status-hint { font-size: 0.78rem; color: var(--text3); margin-left: 4px; }
+  .status-hint.ok { color: var(--green); font-weight: 500; }
+
+  /* CF結果 */
+  .cf-summary-box { background: var(--accent); color: #fff; border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .cf-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+  .cf-summary-item { text-align: center; }
+  .cf-summary-label { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .cf-summary-val { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #fff; }
+  .cf-summary-val.pos { color: #7BE0A8; }
+  .cf-summary-val.neg { color: #F0948A; }
+  .cf-summary-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 1rem 0; }
+  .cf-verify-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: rgba(255,255,255,0.75); }
+  .cf-verify-ok { color: #7BE0A8; font-weight: 700; }
+  .cf-verify-ng { color: #F0948A; font-weight: 700; }
+
+  .cf-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.25rem; }
+  .cf-section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .cf-section-title { font-size: 0.88rem; font-weight: 700; }
+  .cf-section-badge { font-family: 'DM Mono', monospace; font-size: 0.88rem; font-weight: 700; }
+  .cf-section-badge.positive { color: var(--green); }
+  .cf-section-badge.negative { color: var(--red); }
+  .cf-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 18px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+  .cf-row:last-child { border-bottom: none; }
+  .cf-row-label { color: var(--text2); padding-left: 20px; }
+  .cf-row-val { font-family: 'DM Mono', monospace; font-size: 0.82rem; font-weight: 500; }
+  .cf-row-val.positive { color: var(--green); }
+  .cf-row-val.negative { color: var(--red); }
+  .cf-total-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: var(--surface2); font-size: 0.85rem; font-weight: 700; border-top: 1px solid var(--border); }
+  .cf-total-val { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 700; }
+  .cf-total-val.positive { color: var(--green); }
+  .cf-total-val.negative { color: var(--red); }
+
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-logo">CF Builder</div>
+    <div class="header-sub">キャッシュフロー計算書作成ツール</div>
+  </div>
+  <span class="header-badge">間接法</span>
+</header>
+
+<div class="container">
+
+  <div class="stepper">
+    <div class="step-item">
+      <div class="step-circle active" id="sc1">1</div>
+      <div class="step-text"><div class="step-name" id="sn1">アップロード</div></div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle inactive" id="sc2">2</div>
+      <div class="step-text"><div class="step-name inactive" id="sn2">科目マッピング</div></div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <div class="step-circle inactive" id="sc3">3</div>
+      <div class="step-text"><div class="step-name inactive" id="sn3">CF計算書</div></div>
+    </div>
+  </div>
+
+  <!-- Panel 1: Upload -->
+  <div class="panel active" id="panel-upload">
+    <div class="panel-header">
+      <h1 class="panel-title">財務データをアップロード</h1>
+      <p class="panel-desc">PL・BS（前期・当期）・内訳書のファイルをアップロードしてください。Excel (.xlsx) および CSV (.csv) に対応しています。データはブラウザ内でのみ処理されます。</p>
+    </div>
+    <div class="info-banner">
+      <span>ℹ</span>
+      <span>4ファイルすべて必須です。内訳書には減価償却費・固定資産取得額・借入金増減を記載してください。複数シートがある場合も対応しています。</span>
+    </div>
+    <div class="upload-grid">
+      <div class="upload-card" id="card-pl">
+        <input type="file" accept=".xlsx,.csv" onchange="handleFile('pl',this)">
+        <div class="upload-icon-wrap">📄</div>
+        <div class="upload-card-label">PL（損益計算書）</div>
+        <div class="upload-card-sub">.xlsx / .csv</div>
+        <div id="pl-info"></div>
+      </div>
+      <div class="upload-card" id="card-bs_prev">
+        <input type="file" accept=".xlsx,.csv" onchange="handleFile('bs_prev',this)">
+        <div class="upload-icon-wrap">📊</div>
+        <div class="upload-card-label">BS 前期</div>
+        <div class="upload-card-sub">.xlsx / .csv</div>
+        <div id="bs_prev-info"></div>
+      </div>
+      <div class="upload-card" id="card-bs_curr">
+        <input type="file" accept=".xlsx,.csv" onchange="handleFile('bs_curr',this)">
+        <div class="upload-icon-wrap">📊</div>
+        <div class="upload-card-label">BS 当期</div>
+        <div class="upload-card-sub">.xlsx / .csv</div>
+        <div id="bs_curr-info"></div>
+      </div>
+      <div class="upload-card" id="card-schedule">
+        <input type="file" accept=".xlsx,.csv" onchange="handleFile('schedule',this)">
+        <div class="upload-icon-wrap">📋</div>
+        <div class="upload-card-label">内訳書</div>
+        <div class="upload-card-sub">.xlsx / .csv（複数シート対応）</div>
+        <div id="schedule-info"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-to-mapping" disabled onclick="goToMapping()">科目マッピングへ →</button>
+      <span class="status-hint" id="upload-status-msg">PL・BS前期・BS当期・内訳書は必須です</span>
+    </div>
+  </div>
+
+  <!-- Panel 2: Mapping -->
+  <div class="panel" id="panel-mapping">
+    <div class="panel-header">
+      <h1 class="panel-title">科目マッピング</h1>
+      <p class="panel-desc">各ファイルの列設定を確認し、CF計算に使う科目名をドロップダウンから選択してください。内訳書は科目ごとに参照シートを切り替えられます。</p>
+    </div>
+
+    <div class="sub-section">ステップ 1 — ファイルの列設定</div>
+    <div class="info-banner" style="margin-bottom:1rem;">
+      <span>ℹ</span>
+      <span>科目名が縦に並ぶ列（科目列）と、金額が入っている列（金額列）を指定してください。</span>
+    </div>
+    <div class="file-config-grid" id="file-config-area"></div>
+
+    <div class="divider"></div>
+    <div class="sub-section">ステップ 2 — CF科目と行の対応付け</div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="prog-text">0 / 6 必須科目を設定済み</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="mapping-wrapper">
+      <table class="mapping-table">
+        <thead>
+          <tr>
+            <th style="width:22%">CF科目</th>
+            <th style="width:12%">区分</th>
+            <th style="width:22%">参照シート<br><span style="font-weight:400;font-size:0.68rem;">（内訳書のみ）</span></th>
+            <th>ファイル内の科目名</th>
+            <th style="width:14%">取得値</th>
+          </tr>
+        </thead>
+        <tbody id="mapping-body"></tbody>
+      </table>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(1)">← 戻る</button>
+      <button class="btn btn-primary" id="btn-to-calc" disabled onclick="runCalc()">CF計算書を生成する →</button>
+      <span class="status-hint" id="mapping-status-msg">必須科目をすべて設定してください</span>
+    </div>
+  </div>
+
+  <!-- Panel 3: CF Result -->
+  <div class="panel" id="panel-calc">
+    <div class="panel-header">
+      <h1 class="panel-title">キャッシュフロー計算書</h1>
+      <p class="panel-desc">間接法によるCF計算書です。</p>
+    </div>
+
+    <div class="cf-summary-box">
+      <div class="cf-summary-grid">
+        <div class="cf-summary-item">
+          <div class="cf-summary-label">営業活動CF</div>
+          <div class="cf-summary-val" id="sum-operating">—</div>
+        </div>
+        <div class="cf-summary-item">
+          <div class="cf-summary-label">投資活動CF</div>
+          <div class="cf-summary-val" id="sum-investing">—</div>
+        </div>
+        <div class="cf-summary-item">
+          <div class="cf-summary-label">財務活動CF</div>
+          <div class="cf-summary-val" id="sum-financing">—</div>
+        </div>
+      </div>
+      <div class="cf-summary-divider"></div>
+      <div class="cf-verify-row">
+        <span>現金検証（期首現金 ＋ CF合計 ＝ 期末現金）</span>
+        <span id="verify-result">—</span>
+      </div>
+    </div>
+
+    <div id="warn-area"></div>
+
+    <div class="cf-section">
+      <div class="cf-section-header">
+        <span class="cf-section-title">営業活動によるキャッシュフロー</span>
+        <span class="cf-section-badge" id="badge-operating">—</span>
+      </div>
+      <div id="rows-operating"></div>
+      <div class="cf-total-row"><span>営業活動CF 合計</span><span class="cf-total-val" id="total-operating">—</span></div>
+    </div>
+
+    <div class="cf-section">
+      <div class="cf-section-header">
+        <span class="cf-section-title">投資活動によるキャッシュフロー</span>
+        <span class="cf-section-badge" id="badge-investing">—</span>
+      </div>
+      <div id="rows-investing"></div>
+      <div class="cf-total-row"><span>投資活動CF 合計</span><span class="cf-total-val" id="total-investing">—</span></div>
+    </div>
+
+    <div class="cf-section">
+      <div class="cf-section-header">
+        <span class="cf-section-title">財務活動によるキャッシュフロー</span>
+        <span class="cf-section-badge" id="badge-financing">—</span>
+      </div>
+      <div id="rows-financing"></div>
+      <div class="cf-total-row"><span>財務活動CF 合計</span><span class="cf-total-val" id="total-financing">—</span></div>
+    </div>
+
+    <div class="cf-section">
+      <div class="cf-section-header">
+        <span class="cf-section-title">現金及び現金同等物の増減</span>
+      </div>
+      <div id="rows-cash"></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1.5rem">
+      <button class="btn btn-secondary" onclick="goToStep(2)">← マッピングを修正</button>
+      <button class="btn btn-export" onclick="exportExcel()">Excel出力 ↓</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CF科目定義 ──────────────────────────────────────────────────
+const CF_ITEMS = [
+  { key: 'net_income',   label: '当期純利益',         fileKey: 'pl',       required: true },
+  { key: 'ar',           label: '売上債権',            fileKey: 'bs',       required: true },
+  { key: 'inventory',    label: '棚卸資産',            fileKey: 'bs',       required: true },
+  { key: 'ap',           label: '仕入債務',            fileKey: 'bs',       required: true },
+  { key: 'cash',         label: '現金及び預金',        fileKey: 'bs',       required: true },
+  { key: 'depreciation', label: '減価償却費',          fileKey: 'schedule', required: true },
+  { key: 'fixed_asset',  label: '有形固定資産 取得額', fileKey: 'schedule', required: false },
+  { key: 'loan_lt',      label: '長期借入金 増減',     fileKey: 'schedule', required: false },
+  { key: 'loan_st',      label: '短期借入金 増減',     fileKey: 'schedule', required: false },
+];
+const TAG_LABEL = { pl:'PL', bs:'BS', schedule:'内訳書' };
+const TAG_CLASS  = { pl:'tag-pl', bs:'tag-bs', schedule:'tag-schedule' };
+const FILE_LABEL = { pl:'PL', bs_prev:'BS 前期', bs_curr:'BS 当期', schedule:'内訳書' };
+
+// ── 状態 ────────────────────────────────────────────────────────
+let files     = {};  // fileKey -> { name, wb }
+let sheets    = {};  // fileKey -> [sheetName]
+// colConfig: fileKey -> { sheet, labelCol, valueCol }
+// ただし schedule は複数シートを持つので sheetRowData で管理
+let colConfig = {};
+// sheetRowData: sheetName -> [{label,value}]  内訳書の全シートをパース済みで保持
+let sheetRowData = {};
+// itemSheetSel: cfItemKey -> sheetName  内訳書科目ごとの選択シート
+let itemSheetSel = {};
+// mappings: cfItemKey -> 科目名
+let mappings  = {};
+// rowData: fileKey(pl/bs_prev/bs_curr) -> [{label,value}]
+let rowData   = {};
+let cfResult  = null;
+
+// ── ユーティリティ ───────────────────────────────────────────────
+function fmt(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  const n = Math.round(v);
+  return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString();
+}
+function colorCls(v) { return v >= 0 ? 'positive' : 'negative'; }
+
+// ── ファイル読み込み ──────────────────────────────────────────────
+function handleFile(key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      files[key]  = { name: file.name, wb };
+      sheets[key] = wb.SheetNames;
+      colConfig[key] = { sheet: wb.SheetNames[0], labelCol: 0, valueCol: 1 };
+      document.getElementById('card-' + key)?.classList.add('filled');
+      const short = file.name.length > 24 ? file.name.slice(0,22)+'…' : file.name;
+      const el = document.getElementById(key+'-info');
+      const sheetInfo = key === 'schedule' && wb.SheetNames.length > 1
+        ? `<div style="font-size:0.7rem;color:var(--accent-mid);margin-top:2px;">${wb.SheetNames.length}シート検出</div>` : '';
+      if (el) el.innerHTML = `<div class="upload-filename">${short}</div>${sheetInfo}<span class="check-badge">✓ 読込完了</span>`;
+      checkUploadReady();
+    } catch(err) { alert('読み込み失敗: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkUploadReady() {
+  const ok = !!(files.pl && files.bs_prev && files.bs_curr && files.schedule);
+  document.getElementById('btn-to-mapping').disabled = !ok;
+  const msg = document.getElementById('upload-status-msg');
+  msg.textContent = ok ? '✓ 必須ファイルがそろいました' : 'PL・BS前期・BS当期・内訳書は必須です';
+  msg.className = 'status-hint' + (ok ? ' ok' : '');
+}
+
+// ── データパース ─────────────────────────────────────────────────
+function parseWs(ws, labelCol, valueCol) {
+  if (!ws || !ws['!ref']) return [];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const result = [];
+  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+    const lc = ws[XLSX.utils.encode_cell({ r, c: labelCol })];
+    const vc = ws[XLSX.utils.encode_cell({ r, c: valueCol })];
+    const label = lc ? String(lc.v).trim() : '';
+    const raw   = vc ? (typeof vc.v === 'number' ? vc.v : parseFloat(vc.v)) : null;
+    const value = (raw === null || isNaN(raw)) ? null : raw;
+    if (label) result.push({ label, value });
+  }
+  return result;
+}
+
+function refreshRowData(fileKey) {
+  const cfg = colConfig[fileKey];
+  if (!cfg || !files[fileKey]) return;
+  const ws = files[fileKey].wb.Sheets[cfg.sheet];
+  rowData[fileKey] = parseWs(ws, cfg.labelCol, cfg.valueCol);
+}
+
+// 内訳書：全シートをパースして sheetRowData に格納
+function refreshScheduleAllSheets() {
+  if (!files.schedule) return;
+  const cfg = colConfig['schedule'];
+  sheetRowData = {};
+  sheets['schedule'].forEach(sName => {
+    const ws = files.schedule.wb.Sheets[sName];
+    sheetRowData[sName] = parseWs(ws, cfg.labelCol, cfg.valueCol);
+  });
+}
+
+// ── ヘッダー取得 ─────────────────────────────────────────────────
+function getHeaders(fileKey) {
+  const cfg = colConfig[fileKey];
+  if (!cfg || !files[fileKey]) return [];
+  const ws = files[fileKey].wb.Sheets[cfg.sheet];
+  if (!ws || !ws['!ref']) return [];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const out = [];
+  for (let c = range.s.c; c <= Math.min(range.e.c, 30); c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: range.s.r, c })];
+    out.push({ idx: c, name: cell ? String(cell.v).trim() : `列${c+1}` });
+  }
+  return out;
+}
+
+// ── マッピング画面 ────────────────────────────────────────────────
+function goToMapping() {
+  goToStep(2);
+  ['pl','bs_prev','bs_curr','schedule'].filter(k => files[k]).forEach(k => refreshRowData(k));
+  refreshScheduleAllSheets();
+  // 内訳書科目のデフォルトシートを最初のシートに設定
+  CF_ITEMS.filter(i => i.fileKey === 'schedule').forEach(i => {
+    if (!itemSheetSel[i.key]) itemSheetSel[i.key] = sheets['schedule'][0];
+  });
+  buildFileConfigArea();
+  buildMappingTable();
+}
+
+function buildFileConfigArea() {
+  const area = document.getElementById('file-config-area');
+  const keys = ['pl','bs_prev','bs_curr','schedule'].filter(k => files[k]);
+  area.innerHTML = keys.map(k => {
+    const sheetOpts = sheets[k].map(s =>
+      `<option${colConfig[k]?.sheet===s?' selected':''}>${s}</option>`).join('');
+    const cols = getHeaders(k);
+    const colOpts = cols.map(c =>
+      `<option value="${c.idx}"${colConfig[k]?.labelCol===c.idx?' selected':''}>${c.name}</option>`).join('');
+    const valOpts = cols.map(c =>
+      `<option value="${c.idx}"${colConfig[k]?.valueCol===c.idx?' selected':''}>${c.name}</option>`).join('');
+    // 内訳書は「列設定の基準シート」の説明を追加
+    const note = k === 'schedule' && sheets[k].length > 1
+      ? `<div style="font-size:0.7rem;color:var(--amber);margin-bottom:6px;">※ 列設定は全シートに適用されます</div>` : '';
+    return `<div class="file-config-card">
+      <div class="file-config-label">${FILE_LABEL[k]}</div>
+      ${note}
+      <div class="file-config-row">
+        <div class="file-config-sublabel">シート（列設定の参照）</div>
+        <select onchange="onSheetChange('${k}',this.value)">${sheetOpts}</select>
+      </div>
+      <div class="file-config-row">
+        <div class="file-config-sublabel">科目列（科目名が並ぶ列）</div>
+        <select onchange="onColChange('${k}','labelCol',+this.value)">${colOpts}</select>
+      </div>
+      <div class="file-config-row">
+        <div class="file-config-sublabel">金額列（数値が入る列）</div>
+        <select onchange="onColChange('${k}','valueCol',+this.value)">${valOpts}</select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function onSheetChange(key, sheet) {
+  colConfig[key].sheet = sheet;
+  refreshRowData(key);
+  if (key === 'schedule') refreshScheduleAllSheets();
+  buildFileConfigArea();
+  buildMappingTable();
+}
+
+function onColChange(key, prop, colIdx) {
+  colConfig[key][prop] = colIdx;
+  refreshRowData(key);
+  if (key === 'schedule') refreshScheduleAllSheets();
+  buildMappingTable();
+}
+
+// 内訳書：指定科目のシートを変更
+function onItemSheetChange(cfKey, sheetName) {
+  itemSheetSel[cfKey] = sheetName;
+  // 科目選択をリセット
+  delete mappings[cfKey];
+  buildMappingTable();
+}
+
+function buildMappingTable() {
+  const tbody = document.getElementById('mapping-body');
+  tbody.innerHTML = CF_ITEMS.map(item => {
+    // ラベル一覧取得
+    let labels = [];
+    if (item.fileKey === 'pl') {
+      labels = (rowData['pl'] || []).map(r => r.label);
+    } else if (item.fileKey === 'bs') {
+      const prev = (rowData['bs_prev'] || []).map(r => r.label);
+      const curr = (rowData['bs_curr'] || []).map(r => r.label);
+      labels = [...new Set([...prev, ...curr])];
+    } else if (item.fileKey === 'schedule') {
+      const sel = itemSheetSel[item.key] || sheets['schedule']?.[0] || '';
+      labels = (sheetRowData[sel] || []).map(r => r.label);
+    }
+
+    const opts = ['<option value="">— 選択してください —</option>',
+      ...labels.map(l => `<option value="${l}"${mappings[item.key]===l?' selected':''}>${l}</option>`)
+    ].join('');
+
+    const badge = item.required
+      ? `<span class="cf-item-req">必須</span>`
+      : `<span class="cf-item-opt">任意</span>`;
+
+    // 内訳書のシート選択セル
+    let sheetCell = '<td>—</td>';
+    if (item.fileKey === 'schedule') {
+      const schedSheets = sheets['schedule'] || [];
+      const curSheet = itemSheetSel[item.key] || schedSheets[0] || '';
+      if (schedSheets.length > 1) {
+        const sheetOpts = schedSheets.map(s =>
+          `<option value="${s}"${curSheet===s?' selected':''}>${s}</option>`).join('');
+        sheetCell = `<td><select class="compact" onchange="onItemSheetChange('${item.key}',this.value)">${sheetOpts}</select></td>`;
+      } else {
+        sheetCell = `<td style="font-size:0.75rem;color:var(--text3);">${schedSheets[0]||'—'}</td>`;
+      }
+    }
+
+    // プレビュー値
+    let previewHtml = '<span class="preview-val missing">未設定</span>';
+    if (mappings[item.key]) {
+      const v = getPreviewValue(item);
+      previewHtml = v !== null
+        ? `<span class="preview-val">${fmt(v)}</span>`
+        : `<span class="preview-val missing">取得不可</span>`;
+    }
+
+    const tagKey = item.fileKey === 'bs' ? 'bs' : item.fileKey;
+    return `<tr>
+      <td><span class="cf-item-name">${item.label}</span>${badge}</td>
+      <td><span class="tag ${TAG_CLASS[tagKey]}">${TAG_LABEL[tagKey]}</span></td>
+      ${sheetCell}
+      <td><select onchange="setMapping('${item.key}',this.value)">${opts}</select></td>
+      <td id="preview-${item.key}">${previewHtml}</td>
+    </tr>`;
+  }).join('');
+  updateProgress();
+}
+
+function getPreviewValue(item) {
+  const label = mappings[item.key];
+  if (!label) return null;
+  if (item.fileKey === 'pl') return getValueFromRows(rowData['pl'], label);
+  if (item.fileKey === 'bs') return getValueFromRows(rowData['bs_curr'], label);
+  if (item.fileKey === 'schedule') {
+    const sel = itemSheetSel[item.key] || sheets['schedule']?.[0];
+    return getValueFromRows(sheetRowData[sel], label);
+  }
+  return null;
+}
+
+function getValueFromRows(rows, label) {
+  if (!rows || !label) return null;
+  const found = rows.find(r => r.label === label);
+  return found ? found.value : null;
+}
+
+function setMapping(key, val) {
+  if (val) mappings[key] = val; else delete mappings[key];
+  const item = CF_ITEMS.find(i => i.key === key);
+  const previewEl = document.getElementById('preview-' + key);
+  if (previewEl && item) {
+    if (!val) {
+      previewEl.innerHTML = '<span class="preview-val missing">未設定</span>';
+    } else {
+      const v = getPreviewValue(item);
+      previewEl.innerHTML = v !== null
+        ? `<span class="preview-val">${fmt(v)}</span>`
+        : `<span class="preview-val missing">取得不可</span>`;
+    }
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  const required = CF_ITEMS.filter(i => i.required);
+  const done = required.filter(i => mappings[i.key]).length;
+  const total = required.length;
+  const pct = Math.round(done / total * 100);
+  document.getElementById('prog-text').textContent = `${done} / ${total} 必須科目を設定済み`;
+  document.getElementById('prog-pct').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  const allDone = done === total;
+  document.getElementById('btn-to-calc').disabled = !allDone;
+  const msg = document.getElementById('mapping-status-msg');
+  msg.textContent = allDone ? '✓ すべての必須科目が設定されました' : `残り ${total - done} 科目を設定してください`;
+  msg.className = 'status-hint' + (allDone ? ' ok' : '');
+}
+
+// ── CF計算 ────────────────────────────────────────────────────────
+function getSchedVal(cfKey) {
+  const sel = itemSheetSel[cfKey] || sheets['schedule']?.[0];
+  return getValueFromRows(sheetRowData[sel], mappings[cfKey]);
+}
+
+function runCalc() {
+  goToStep(3);
+
+  const netIncome    = getValueFromRows(rowData['pl'],      mappings['net_income'])   ?? 0;
+  const depreciation = getSchedVal('depreciation')                                   ?? 0;
+  const arPrev       = getValueFromRows(rowData['bs_prev'], mappings['ar'])           ?? 0;
+  const arCurr       = getValueFromRows(rowData['bs_curr'], mappings['ar'])           ?? 0;
+  const invPrev      = getValueFromRows(rowData['bs_prev'], mappings['inventory'])    ?? 0;
+  const invCurr      = getValueFromRows(rowData['bs_curr'], mappings['inventory'])    ?? 0;
+  const apPrev       = getValueFromRows(rowData['bs_prev'], mappings['ap'])           ?? 0;
+  const apCurr       = getValueFromRows(rowData['bs_curr'], mappings['ap'])           ?? 0;
+  const cashPrev     = getValueFromRows(rowData['bs_prev'], mappings['cash'])         ?? 0;
+  const cashCurr     = getValueFromRows(rowData['bs_curr'], mappings['cash'])         ?? 0;
+
+  const arChange  = -(arCurr  - arPrev);
+  const invChange = -(invCurr - invPrev);
+  const apChange  =  (apCurr  - apPrev);
+
+  const fixedAsset = getSchedVal('fixed_asset');
+  const loanLt     = getSchedVal('loan_lt');
+  const loanSt     = getSchedVal('loan_st');
+
+  const operatingCF = netIncome + depreciation + arChange + invChange + apChange;
+  const investingCF = fixedAsset !== null ? -Math.abs(fixedAsset) : 0;
+  const financingCF = (loanLt ?? 0) + (loanSt ?? 0);
+  const totalCF     = operatingCF + investingCF + financingCF;
+  const diff        = Math.round((cashPrev + totalCF) - cashCurr);
+  const verified    = Math.abs(diff) < 1;
+
+  cfResult = { netIncome, depreciation, arChange, invChange, apChange, operatingCF, fixedAsset, investingCF, loanLt, loanSt, financingCF, totalCF, cashPrev, cashCurr, diff, verified };
+  renderResult(cfResult);
+}
+
+// ── 結果表示 ──────────────────────────────────────────────────────
+function renderResult(r) {
+  [['sum-operating', r.operatingCF], ['sum-investing', r.investingCF], ['sum-financing', r.financingCF]].forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    el.textContent = fmt(val);
+    el.className = 'cf-summary-val ' + (val >= 0 ? 'pos' : 'neg');
+  });
+  document.getElementById('verify-result').innerHTML = r.verified
+    ? '<span class="cf-verify-ok">✓ 一致</span>'
+    : `<span class="cf-verify-ng">✗ 差異 ${fmt(r.diff)}</span>`;
+  document.getElementById('warn-area').innerHTML = r.verified
+    ? `<div class="ok-banner"><span>✓</span><span>BS現金残高と完全に一致しました。</span></div>`
+    : `<div class="warn-banner"><span>⚠</span><span>BS現金残高と差異（${fmt(r.diff)}）があります。内訳書の科目マッピングを確認するか、未反映の調整項目がある可能性があります。</span></div>`;
+
+  document.getElementById('rows-operating').innerHTML = [
+    ['当期純利益',       r.netIncome],
+    ['減価償却費',       r.depreciation],
+    ['売上債権の増減額', r.arChange],
+    ['棚卸資産の増減額', r.invChange],
+    ['仕入債務の増減額', r.apChange],
+  ].map(([label, val]) =>
+    `<div class="cf-row"><span class="cf-row-label">${label}</span><span class="cf-row-val ${colorCls(val)}">${fmt(val)}</span></div>`
+  ).join('');
+  setSection('operating', r.operatingCF);
+
+  const invVal = r.fixedAsset !== null ? -Math.abs(r.fixedAsset) : null;
+  document.getElementById('rows-investing').innerHTML =
+    `<div class="cf-row"><span class="cf-row-label">${r.fixedAsset!==null?'有形固定資産の取得':'（未設定）'}</span><span class="cf-row-val ${invVal!==null?colorCls(invVal):''}">${invVal!==null?fmt(invVal):'—'}</span></div>`;
+  setSection('investing', r.investingCF);
+
+  const finRows = [];
+  if (r.loanLt !== null) finRows.push(['長期借入金の増減', r.loanLt]);
+  if (r.loanSt !== null) finRows.push(['短期借入金の増減', r.loanSt]);
+  if (!finRows.length) finRows.push(['（未設定）', null]);
+  document.getElementById('rows-financing').innerHTML = finRows.map(([label, val]) =>
+    `<div class="cf-row"><span class="cf-row-label">${label}</span><span class="cf-row-val ${val!==null?colorCls(val):''}">${val!==null?fmt(val):'—'}</span></div>`
+  ).join('');
+  setSection('financing', r.financingCF);
+
+  document.getElementById('rows-cash').innerHTML = [
+    ['期首現金及び現金同等物',     r.cashPrev],
+    ['現金及び現金同等物の増減額', r.totalCF],
+    ['期末現金及び現金同等物',     r.cashCurr],
+  ].map(([label, val]) =>
+    `<div class="cf-row"><span class="cf-row-label">${label}</span><span class="cf-row-val ${colorCls(val)}">${fmt(val)}</span></div>`
+  ).join('');
+}
+
+function setSection(name, val) {
+  document.getElementById('badge-' + name).textContent = fmt(val);
+  document.getElementById('badge-' + name).className = 'cf-section-badge ' + colorCls(val);
+  document.getElementById('total-' + name).textContent = fmt(val);
+  document.getElementById('total-' + name).className = 'cf-total-val ' + colorCls(val);
+}
+
+// ── Excel出力 ─────────────────────────────────────────────────────
+function exportExcel() {
+  if (!cfResult) return;
+  const r = cfResult;
+  const rows = [
+    ['キャッシュフロー計算書（間接法）'],
+    [],
+    ['■ 営業活動によるキャッシュフロー'],
+    ['　当期純利益',           r.netIncome],
+    ['　減価償却費',           r.depreciation],
+    ['　売上債権の増減額',     r.arChange],
+    ['　棚卸資産の増減額',     r.invChange],
+    ['　仕入債務の増減額',     r.apChange],
+    ['　営業活動CF 合計',      r.operatingCF],
+    [],
+    ['■ 投資活動によるキャッシュフロー'],
+    ['　有形固定資産の取得',   r.fixedAsset!==null ? -Math.abs(r.fixedAsset) : ''],
+    ['　投資活動CF 合計',      r.investingCF],
+    [],
+    ['■ 財務活動によるキャッシュフロー'],
+    ['　長期借入金の増減',     r.loanLt ?? ''],
+    ['　短期借入金の増減',     r.loanSt ?? ''],
+    ['　財務活動CF 合計',      r.financingCF],
+    [],
+    ['■ 現金及び現金同等物の増減'],
+    ['　期首現金及び現金同等物',     r.cashPrev],
+    ['　現金及び現金同等物の増減額', r.totalCF],
+    ['　期末現金及び現金同等物',     r.cashCurr],
+    [],
+    ['【検証】BS現金との差異', r.diff, r.verified ? '✓ 一致' : '✗ 差異あり'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 36 }, { wch: 18 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'CF計算書');
+  XLSX.writeFile(wb, 'CF計算書.xlsx');
+}
+
+// ── ステッパー ────────────────────────────────────────────────────
+function goToStep(n) {
+  ['panel-upload','panel-mapping','panel-calc'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', i+1===n);
+  });
+  [1,2,3].forEach(i => {
+    document.getElementById('sc'+i).className = 'step-circle ' + (i<n?'done':i===n?'active':'inactive');
+    document.getElementById('sn'+i).className = 'step-name' + (i>n?' inactive':'');
+  });
+}
+</script>
+</body>
+</html>
