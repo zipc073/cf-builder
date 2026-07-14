@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
 <title>CF Builder — キャッシュフロー計算書作成ツール</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -20,10 +20,10 @@
     --radius: 10px; --radius-lg: 16px;
   }
   html { font-size: 15px; }
-  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+  body { font-family: 'Hiragino Sans','Yu Gothic',system-ui,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
   header { background: var(--accent); color: #fff; padding: 0 2rem; height: 56px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
-  .header-logo { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: #fff; }
+  .header-logo { font-family: Georgia,'Hiragino Mincho ProN',serif; font-size: 1.25rem; color: #fff; }
   .header-sub { font-size: 0.72rem; color: rgba(255,255,255,0.55); letter-spacing: 0.06em; text-transform: uppercase; margin-left: 4px; }
   .header-badge { margin-left: auto; font-size: 0.7rem; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); padding: 3px 10px; border-radius: 99px; }
 
@@ -44,7 +44,7 @@
   .panel.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .panel-header { margin-bottom: 1.75rem; }
-  .panel-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--text); margin-bottom: 0.35rem; }
+  .panel-title { font-family: Georgia,'Hiragino Mincho ProN',serif; font-size: 1.5rem; color: var(--text); margin-bottom: 0.35rem; }
   .panel-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.7; }
 
   .upload-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.75rem; }
@@ -56,7 +56,7 @@
   .upload-card.filled .upload-icon-wrap { background: rgba(45,107,74,0.15); }
   .upload-card-label { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
   .upload-card-sub { font-size: 0.75rem; color: var(--text3); }
-  .upload-filename { margin-top: 8px; font-size: 0.75rem; font-family: 'DM Mono', monospace; color: var(--accent-mid); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-filename { margin-top: 8px; font-size: 0.75rem; font-family: 'SFMono-Regular',Consolas,Menlo,monospace; color: var(--accent-mid); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .check-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; background: var(--green-bg); color: var(--green); padding: 2px 8px; border-radius: 99px; margin-top: 6px; }
 
   .info-banner { display: flex; gap: 10px; background: var(--blue-bg); border-left: 3px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 14px; font-size: 0.8rem; color: var(--blue); margin-bottom: 1.75rem; line-height: 1.6; }
@@ -72,7 +72,7 @@
   .file-config-row { margin-bottom: 6px; }
   .file-config-sublabel { font-size: 0.7rem; color: var(--text3); margin-bottom: 3px; }
 
-  select { width: 100%; font-size: 0.82rem; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6660'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  select { width: 100%; font-size: 0.82rem; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg); color: var(--text); font-family: 'Hiragino Sans','Yu Gothic',system-ui,sans-serif; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6660'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
   select:focus { outline: none; border-color: var(--accent-mid); }
   select.compact { font-size: 0.75rem; padding: 4px 24px 4px 6px; }
 
@@ -97,8 +97,9 @@
   .sheet-select-label { font-size: 0.68rem; color: var(--text3); margin-bottom: 2px; }
 
   /* プレビューバッジ */
-  .preview-val { display: inline-block; font-family: 'DM Mono', monospace; font-size: 0.78rem; background: var(--green-bg); color: var(--green); padding: 1px 8px; border-radius: 99px; font-weight: 700; }
+  .preview-val { display: inline-block; font-family: 'SFMono-Regular',Consolas,Menlo,monospace; font-size: 0.78rem; background: var(--green-bg); color: var(--green); padding: 1px 8px; border-radius: 99px; font-weight: 700; }
   .preview-val.missing { background: var(--red-bg); color: var(--red); }
+  .dup-warn { display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--amber); background: var(--amber-bg); padding: 1px 6px; border-radius: 99px; margin-left: 4px; cursor: help; }
 
   /* 進捗 */
   .progress-wrap { margin-bottom: 1.5rem; }
@@ -108,7 +109,7 @@
 
   /* ボタン */
   .btn-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 700; font-family: 'Noto Sans JP', sans-serif; cursor: pointer; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 700; font-family: 'Hiragino Sans','Yu Gothic',system-ui,sans-serif; cursor: pointer; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text); transition: all 0.15s; }
   .btn:hover { background: var(--surface2); }
   .btn:active { transform: scale(0.98); }
   .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
@@ -125,7 +126,7 @@
   .cf-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
   .cf-summary-item { text-align: center; }
   .cf-summary-label { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
-  .cf-summary-val { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 700; color: #fff; }
+  .cf-summary-val { font-family: 'SFMono-Regular',Consolas,Menlo,monospace; font-size: 1.1rem; font-weight: 700; color: #fff; }
   .cf-summary-val.pos { color: #7BE0A8; }
   .cf-summary-val.neg { color: #F0948A; }
   .cf-summary-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 1rem 0; }
@@ -136,21 +137,29 @@
   .cf-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.25rem; }
   .cf-section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); }
   .cf-section-title { font-size: 0.88rem; font-weight: 700; }
-  .cf-section-badge { font-family: 'DM Mono', monospace; font-size: 0.88rem; font-weight: 700; }
+  .cf-section-badge { font-family: 'SFMono-Regular',Consolas,Menlo,monospace; font-size: 0.88rem; font-weight: 700; }
   .cf-section-badge.positive { color: var(--green); }
   .cf-section-badge.negative { color: var(--red); }
   .cf-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 18px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
   .cf-row:last-child { border-bottom: none; }
   .cf-row-label { color: var(--text2); padding-left: 20px; }
-  .cf-row-val { font-family: 'DM Mono', monospace; font-size: 0.82rem; font-weight: 500; }
+  .cf-row-val { font-family: 'SFMono-Regular',Consolas,Menlo,monospace; font-size: 0.82rem; font-weight: 500; }
   .cf-row-val.positive { color: var(--green); }
   .cf-row-val.negative { color: var(--red); }
   .cf-total-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: var(--surface2); font-size: 0.85rem; font-weight: 700; border-top: 1px solid var(--border); }
-  .cf-total-val { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 700; }
+  .cf-total-val { font-family: 'SFMono-Regular',Consolas,Menlo,monospace; font-size: 0.9rem; font-weight: 700; }
   .cf-total-val.positive { color: var(--green); }
   .cf-total-val.negative { color: var(--red); }
 
   .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  /* 調整項目（営業活動CF） */
+  .adj-add-row { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-top: 1px dashed var(--border); background: var(--bg); flex-wrap: wrap; }
+  .adj-input { flex: 1; min-width: 140px; font-size: 0.78rem; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; background: var(--surface); color: var(--text); font-family: 'Hiragino Sans','Yu Gothic',system-ui,sans-serif; }
+  .adj-input:focus { outline: none; border-color: var(--accent-mid); }
+  .adj-amount { flex: 0 1 180px; font-family: 'SFMono-Regular',Consolas,Menlo,monospace; }
+  .adj-del-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.75rem; margin-left: 8px; padding: 2px 6px; border-radius: 4px; }
+  .adj-del-btn:hover { background: var(--red-bg); }
 </style>
 </head>
 <body>
@@ -312,6 +321,12 @@
         <span class="cf-section-badge" id="badge-operating">—</span>
       </div>
       <div id="rows-operating"></div>
+      <div id="rows-adjustments"></div>
+      <div class="adj-add-row">
+        <input type="text" id="adj-label-input" class="adj-input" placeholder="調整項目名（例: 法人税等の支払額）">
+        <input type="number" id="adj-amount-input" class="adj-input adj-amount" placeholder="金額（減算はマイナス）" step="any">
+        <button class="btn" style="padding:6px 14px;font-size:0.78rem;" onclick="addAdjustment()">＋ 調整項目を追加</button>
+      </div>
       <div class="cf-total-row"><span>営業活動CF 合計</span><span class="cf-total-val" id="total-operating">—</span></div>
     </div>
 
@@ -368,7 +383,8 @@ const FILE_LABEL = { pl:'PL', bs_prev:'BS 前期', bs_curr:'BS 当期', schedule
 // ── 状態 ────────────────────────────────────────────────────────
 let files     = {};  // fileKey -> { name, wb }
 let sheets    = {};  // fileKey -> [sheetName]
-// colConfig: fileKey -> { sheet, labelCol, valueCol }
+// colConfig: fileKey -> { sheet, labelCol, valueCol, startRow }
+// startRow はデータが始まる行（0始まりの行インデックス。デフォルト1＝ヘッダー1行想定）
 // ただし schedule は複数シートを持つので sheetRowData で管理
 let colConfig = {};
 // sheetRowData: sheetName -> [{label,value}]  内訳書の全シートをパース済みで保持
@@ -380,6 +396,8 @@ let mappings  = {};
 // rowData: fileKey(pl/bs_prev/bs_curr) -> [{label,value}]
 let rowData   = {};
 let cfResult  = null;
+// 営業活動CFの任意調整項目（手入力）: [{label, amount}]
+let adjustments = [];
 
 // ── ユーティリティ ───────────────────────────────────────────────
 function fmt(v) {
@@ -388,6 +406,15 @@ function fmt(v) {
   return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString();
 }
 function colorCls(v) { return v >= 0 ? 'positive' : 'negative'; }
+// ユーザーデータ（ファイル名・シート名・科目名等）を innerHTML に埋め込む前のエスケープ
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ── ファイル読み込み ──────────────────────────────────────────────
 function handleFile(key, input) {
@@ -399,13 +426,21 @@ function handleFile(key, input) {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
       files[key]  = { name: file.name, wb };
       sheets[key] = wb.SheetNames;
-      colConfig[key] = { sheet: wb.SheetNames[0], labelCol: 0, valueCol: 1 };
+      colConfig[key] = { sheet: wb.SheetNames[0], labelCol: 0, valueCol: 1, startRow: 1 };
+      // ファイル差し替え時：このファイルに紐づくCF科目のマッピングをリセット
+      // （旧ファイルの科目名を参照し続けて誤計算するのを防ぐ）
+      const cfFileKey = (key === 'bs_prev' || key === 'bs_curr') ? 'bs' : key;
+      CF_ITEMS.filter(i => i.fileKey === cfFileKey).forEach(i => {
+        delete mappings[i.key];
+        if (cfFileKey === 'schedule') delete itemSheetSel[i.key];
+      });
+      cfResult = null;
       document.getElementById('card-' + key)?.classList.add('filled');
       const short = file.name.length > 24 ? file.name.slice(0,22)+'…' : file.name;
       const el = document.getElementById(key+'-info');
       const sheetInfo = key === 'schedule' && wb.SheetNames.length > 1
         ? `<div style="font-size:0.7rem;color:var(--accent-mid);margin-top:2px;">${wb.SheetNames.length}シート検出</div>` : '';
-      if (el) el.innerHTML = `<div class="upload-filename">${short}</div>${sheetInfo}<span class="check-badge">✓ 読込完了</span>`;
+      if (el) el.innerHTML = `<div class="upload-filename">${escapeHtml(short)}</div>${sheetInfo}<span class="check-badge">✓ 読込完了</span>`;
       checkUploadReady();
     } catch(err) { alert('読み込み失敗: ' + err.message); }
   };
@@ -421,11 +456,12 @@ function checkUploadReady() {
 }
 
 // ── データパース ─────────────────────────────────────────────────
-function parseWs(ws, labelCol, valueCol) {
+function parseWs(ws, labelCol, valueCol, startRow) {
   if (!ws || !ws['!ref']) return [];
   const range = XLSX.utils.decode_range(ws['!ref']);
   const result = [];
-  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+  const first = Math.max(range.s.r, (startRow === undefined || startRow === null) ? range.s.r + 1 : startRow);
+  for (let r = first; r <= range.e.r; r++) {
     const lc = ws[XLSX.utils.encode_cell({ r, c: labelCol })];
     const vc = ws[XLSX.utils.encode_cell({ r, c: valueCol })];
     const label = lc ? String(lc.v).trim() : '';
@@ -440,7 +476,7 @@ function refreshRowData(fileKey) {
   const cfg = colConfig[fileKey];
   if (!cfg || !files[fileKey]) return;
   const ws = files[fileKey].wb.Sheets[cfg.sheet];
-  rowData[fileKey] = parseWs(ws, cfg.labelCol, cfg.valueCol);
+  rowData[fileKey] = parseWs(ws, cfg.labelCol, cfg.valueCol, cfg.startRow);
 }
 
 // 内訳書：全シートをパースして sheetRowData に格納
@@ -450,7 +486,7 @@ function refreshScheduleAllSheets() {
   sheetRowData = {};
   sheets['schedule'].forEach(sName => {
     const ws = files.schedule.wb.Sheets[sName];
-    sheetRowData[sName] = parseWs(ws, cfg.labelCol, cfg.valueCol);
+    sheetRowData[sName] = parseWs(ws, cfg.labelCol, cfg.valueCol, cfg.startRow);
   });
 }
 
@@ -462,8 +498,11 @@ function getHeaders(fileKey) {
   if (!ws || !ws['!ref']) return [];
   const range = XLSX.utils.decode_range(ws['!ref']);
   const out = [];
+  // ヘッダー行＝データ開始行の直前の行（開始行が先頭ならヘッダーなしとして列番号で表示）
+  const startRow = (cfg.startRow === undefined || cfg.startRow === null) ? 1 : cfg.startRow;
+  const headerRow = startRow - 1;
   for (let c = range.s.c; c <= Math.min(range.e.c, 30); c++) {
-    const cell = ws[XLSX.utils.encode_cell({ r: range.s.r, c })];
+    const cell = headerRow >= range.s.r ? ws[XLSX.utils.encode_cell({ r: headerRow, c })] : null;
     out.push({ idx: c, name: cell ? String(cell.v).trim() : `列${c+1}` });
   }
   return out;
@@ -487,12 +526,20 @@ function buildFileConfigArea() {
   const keys = ['pl','bs_prev','bs_curr','schedule'].filter(k => files[k]);
   area.innerHTML = keys.map(k => {
     const sheetOpts = sheets[k].map(s =>
-      `<option${colConfig[k]?.sheet===s?' selected':''}>${s}</option>`).join('');
+      `<option value="${escapeHtml(s)}"${colConfig[k]?.sheet===s?' selected':''}>${escapeHtml(s)}</option>`).join('');
     const cols = getHeaders(k);
     const colOpts = cols.map(c =>
-      `<option value="${c.idx}"${colConfig[k]?.labelCol===c.idx?' selected':''}>${c.name}</option>`).join('');
+      `<option value="${c.idx}"${colConfig[k]?.labelCol===c.idx?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
     const valOpts = cols.map(c =>
-      `<option value="${c.idx}"${colConfig[k]?.valueCol===c.idx?' selected':''}>${c.name}</option>`).join('');
+      `<option value="${c.idx}"${colConfig[k]?.valueCol===c.idx?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
+    // 開始行（データが始まる行）の選択肢：シートの行数まで（最大30行目）
+    const ws = files[k].wb.Sheets[colConfig[k].sheet];
+    const lastRow = (ws && ws['!ref']) ? XLSX.utils.decode_range(ws['!ref']).e.r : 0;
+    const curStart = colConfig[k]?.startRow ?? 1;
+    const rowOpts = [];
+    for (let r = 0; r <= Math.min(lastRow, 29); r++) {
+      rowOpts.push(`<option value="${r}"${curStart===r?' selected':''}>${r+1}行目${r===0?'（ヘッダーなし）':''}</option>`);
+    }
     // 内訳書は「列設定の基準シート」の説明を追加
     const note = k === 'schedule' && sheets[k].length > 1
       ? `<div style="font-size:0.7rem;color:var(--amber);margin-bottom:6px;">※ 列設定は全シートに適用されます</div>` : '';
@@ -502,6 +549,10 @@ function buildFileConfigArea() {
       <div class="file-config-row">
         <div class="file-config-sublabel">シート（列設定の参照）</div>
         <select onchange="onSheetChange('${k}',this.value)">${sheetOpts}</select>
+      </div>
+      <div class="file-config-row">
+        <div class="file-config-sublabel">開始行（データが始まる行）</div>
+        <select onchange="onColChange('${k}','startRow',+this.value)">${rowOpts.join('')}</select>
       </div>
       <div class="file-config-row">
         <div class="file-config-sublabel">科目列（科目名が並ぶ列）</div>
@@ -527,6 +578,7 @@ function onColChange(key, prop, colIdx) {
   colConfig[key][prop] = colIdx;
   refreshRowData(key);
   if (key === 'schedule') refreshScheduleAllSheets();
+  if (prop === 'startRow') buildFileConfigArea(); // ヘッダー行が変わるので列名表示を更新
   buildMappingTable();
 }
 
@@ -555,7 +607,7 @@ function buildMappingTable() {
     }
 
     const opts = ['<option value="">— 選択してください —</option>',
-      ...labels.map(l => `<option value="${l}"${mappings[item.key]===l?' selected':''}>${l}</option>`)
+      ...labels.map(l => `<option value="${escapeHtml(l)}"${mappings[item.key]===l?' selected':''}>${escapeHtml(l)}</option>`)
     ].join('');
 
     const badge = item.required
@@ -569,21 +621,15 @@ function buildMappingTable() {
       const curSheet = itemSheetSel[item.key] || schedSheets[0] || '';
       if (schedSheets.length > 1) {
         const sheetOpts = schedSheets.map(s =>
-          `<option value="${s}"${curSheet===s?' selected':''}>${s}</option>`).join('');
+          `<option value="${escapeHtml(s)}"${curSheet===s?' selected':''}>${escapeHtml(s)}</option>`).join('');
         sheetCell = `<td><select class="compact" onchange="onItemSheetChange('${item.key}',this.value)">${sheetOpts}</select></td>`;
       } else {
-        sheetCell = `<td style="font-size:0.75rem;color:var(--text3);">${schedSheets[0]||'—'}</td>`;
+        sheetCell = `<td style="font-size:0.75rem;color:var(--text3);">${schedSheets[0]?escapeHtml(schedSheets[0]):'—'}</td>`;
       }
     }
 
     // プレビュー値
-    let previewHtml = '<span class="preview-val missing">未設定</span>';
-    if (mappings[item.key]) {
-      const v = getPreviewValue(item);
-      previewHtml = v !== null
-        ? `<span class="preview-val">${fmt(v)}</span>`
-        : `<span class="preview-val missing">取得不可</span>`;
-    }
+    const previewHtml = buildPreviewHtml(item);
 
     const tagKey = item.fileKey === 'bs' ? 'bs' : item.fileKey;
     return `<tr>
@@ -597,38 +643,58 @@ function buildMappingTable() {
   updateProgress();
 }
 
-function getPreviewValue(item) {
-  const label = mappings[item.key];
-  if (!label) return null;
-  if (item.fileKey === 'pl') return getValueFromRows(rowData['pl'], label);
-  if (item.fileKey === 'bs') return getValueFromRows(rowData['bs_curr'], label);
-  if (item.fileKey === 'schedule') {
-    const sel = itemSheetSel[item.key] || sheets['schedule']?.[0];
-    return getValueFromRows(sheetRowData[sel], label);
-  }
-  return null;
-}
-
 function getValueFromRows(rows, label) {
   if (!rows || !label) return null;
   const found = rows.find(r => r.label === label);
   return found ? found.value : null;
 }
 
+// 同名科目のヒット数（複数ヒット時は最初の一致を使うため、警告表示に使用）
+function countLabelMatches(rows, label) {
+  if (!rows || !label) return 0;
+  return rows.filter(r => r.label === label).length;
+}
+
+function previewValSpan(v) {
+  return v !== null
+    ? `<span class="preview-val">${fmt(v)}</span>`
+    : `<span class="preview-val missing">取得不可</span>`;
+}
+
+function dupWarnHtml(count, srcName, label) {
+  if (count < 2) return '';
+  return `<span class="dup-warn" title="${escapeHtml(srcName)}に同名科目「${escapeHtml(label)}」が${count}件あります。最初の一致行の値を使用しています。">⚠${count}件</span>`;
+}
+
+// プレビューセルのHTML生成（BS科目は前期・当期の両方を表示）
+function buildPreviewHtml(item) {
+  const label = mappings[item.key];
+  if (!label) return '<span class="preview-val missing">未設定</span>';
+  if (item.fileKey === 'bs') {
+    const vPrev = getValueFromRows(rowData['bs_prev'], label);
+    const vCurr = getValueFromRows(rowData['bs_curr'], label);
+    const dPrev = dupWarnHtml(countLabelMatches(rowData['bs_prev'], label), 'BS前期', label);
+    const dCurr = dupWarnHtml(countLabelMatches(rowData['bs_curr'], label), 'BS当期', label);
+    return `<div style="white-space:nowrap;font-size:0.72rem;color:var(--text3);">前期: ${previewValSpan(vPrev)}${dPrev}</div>` +
+           `<div style="white-space:nowrap;font-size:0.72rem;color:var(--text3);margin-top:2px;">当期: ${previewValSpan(vCurr)}${dCurr}</div>`;
+  }
+  if (item.fileKey === 'pl') {
+    return previewValSpan(getValueFromRows(rowData['pl'], label)) +
+           dupWarnHtml(countLabelMatches(rowData['pl'], label), 'PL', label);
+  }
+  if (item.fileKey === 'schedule') {
+    const sel = itemSheetSel[item.key] || sheets['schedule']?.[0];
+    return previewValSpan(getValueFromRows(sheetRowData[sel], label)) +
+           dupWarnHtml(countLabelMatches(sheetRowData[sel], label), `内訳書（${sel || ''}）`, label);
+  }
+  return '<span class="preview-val missing">未設定</span>';
+}
+
 function setMapping(key, val) {
   if (val) mappings[key] = val; else delete mappings[key];
   const item = CF_ITEMS.find(i => i.key === key);
   const previewEl = document.getElementById('preview-' + key);
-  if (previewEl && item) {
-    if (!val) {
-      previewEl.innerHTML = '<span class="preview-val missing">未設定</span>';
-    } else {
-      const v = getPreviewValue(item);
-      previewEl.innerHTML = v !== null
-        ? `<span class="preview-val">${fmt(v)}</span>`
-        : `<span class="preview-val missing">取得不可</span>`;
-    }
-  }
+  if (previewEl && item) previewEl.innerHTML = buildPreviewHtml(item);
   updateProgress();
 }
 
@@ -654,18 +720,48 @@ function getSchedVal(cfKey) {
 }
 
 function runCalc() {
-  goToStep(3);
+  // ── 必須科目の値取得を検証 ──
+  // 「マッピング未設定」と「マッピング済みだが値が引けない（データ不整合）」を区別する
+  const unmapped   = [];
+  const unresolved = [];
+  const requireVal = (itemKey, itemLabel, srcLabel, rows) => {
+    if (!mappings[itemKey]) {
+      if (!unmapped.includes(itemLabel)) unmapped.push(itemLabel);
+      return null;
+    }
+    const v = getValueFromRows(rows, mappings[itemKey]);
+    if (v === null) unresolved.push(`${itemLabel} — ${srcLabel}で「${mappings[itemKey]}」の値を取得できません`);
+    return v;
+  };
 
-  const netIncome    = getValueFromRows(rowData['pl'],      mappings['net_income'])   ?? 0;
-  const depreciation = getSchedVal('depreciation')                                   ?? 0;
-  const arPrev       = getValueFromRows(rowData['bs_prev'], mappings['ar'])           ?? 0;
-  const arCurr       = getValueFromRows(rowData['bs_curr'], mappings['ar'])           ?? 0;
-  const invPrev      = getValueFromRows(rowData['bs_prev'], mappings['inventory'])    ?? 0;
-  const invCurr      = getValueFromRows(rowData['bs_curr'], mappings['inventory'])    ?? 0;
-  const apPrev       = getValueFromRows(rowData['bs_prev'], mappings['ap'])           ?? 0;
-  const apCurr       = getValueFromRows(rowData['bs_curr'], mappings['ap'])           ?? 0;
-  const cashPrev     = getValueFromRows(rowData['bs_prev'], mappings['cash'])         ?? 0;
-  const cashCurr     = getValueFromRows(rowData['bs_curr'], mappings['cash'])         ?? 0;
+  const netIncome    = requireVal('net_income', '当期純利益', 'PL', rowData['pl']);
+  const depSheet     = itemSheetSel['depreciation'] || sheets['schedule']?.[0];
+  const depreciation = requireVal('depreciation', '減価償却費', `内訳書（${depSheet || ''}）`, sheetRowData[depSheet]);
+  const arPrev       = requireVal('ar',        '売上債権',     'BS前期', rowData['bs_prev']);
+  const arCurr       = requireVal('ar',        '売上債権',     'BS当期', rowData['bs_curr']);
+  const invPrev      = requireVal('inventory', '棚卸資産',     'BS前期', rowData['bs_prev']);
+  const invCurr      = requireVal('inventory', '棚卸資産',     'BS当期', rowData['bs_curr']);
+  const apPrev       = requireVal('ap',        '仕入債務',     'BS前期', rowData['bs_prev']);
+  const apCurr       = requireVal('ap',        '仕入債務',     'BS当期', rowData['bs_curr']);
+  const cashPrev     = requireVal('cash',      '現金及び預金', 'BS前期', rowData['bs_prev']);
+  const cashCurr     = requireVal('cash',      '現金及び預金', 'BS当期', rowData['bs_curr']);
+
+  if (unmapped.length || unresolved.length) {
+    let msg = '必須科目の値を取得できないため、CF計算を中断しました。\n';
+    if (unmapped.length) {
+      msg += '\n【マッピング未設定】\n' + unmapped.map(s => '・' + s).join('\n') + '\n';
+    }
+    if (unresolved.length) {
+      msg += '\n【マッピング済みですが値を取得できません（データ不整合）】\n' + unresolved.map(s => '・' + s).join('\n') + '\n';
+      msg += '\nファイルを差し替えた場合や、シート・列・開始行の設定を変更した場合は、該当科目のマッピングを選び直してください。';
+    }
+    alert(msg);
+    const msgEl = document.getElementById('mapping-status-msg');
+    if (msgEl) { msgEl.textContent = '⚠ 値を取得できない必須科目があります'; msgEl.className = 'status-hint'; }
+    return; // CF計算書パネルには遷移しない
+  }
+
+  goToStep(3);
 
   const arChange  = -(arCurr  - arPrev);
   const invChange = -(invCurr - invPrev);
@@ -675,14 +771,18 @@ function runCalc() {
   const loanLt     = getSchedVal('loan_lt');
   const loanSt     = getSchedVal('loan_st');
 
-  const operatingCF = netIncome + depreciation + arChange + invChange + apChange;
-  const investingCF = fixedAsset !== null ? -Math.abs(fixedAsset) : 0;
+  // 調整項目（手入力）の合計
+  const adjTotal = adjustments.reduce((s, a) => s + a.amount, 0);
+
+  const operatingCF = netIncome + depreciation + arChange + invChange + apChange + adjTotal;
+  // 内訳書の符号を尊重する（正＝取得（支出）としてマイナス化、負＝売却等（収入）としてプラス化）
+  const investingCF = fixedAsset !== null ? -fixedAsset : 0;
   const financingCF = (loanLt ?? 0) + (loanSt ?? 0);
   const totalCF     = operatingCF + investingCF + financingCF;
   const diff        = Math.round((cashPrev + totalCF) - cashCurr);
   const verified    = Math.abs(diff) < 1;
 
-  cfResult = { netIncome, depreciation, arChange, invChange, apChange, operatingCF, fixedAsset, investingCF, loanLt, loanSt, financingCF, totalCF, cashPrev, cashCurr, diff, verified };
+  cfResult = { netIncome, depreciation, arChange, invChange, apChange, adjustments: adjustments.slice(), operatingCF, fixedAsset, investingCF, loanLt, loanSt, financingCF, totalCF, cashPrev, cashCurr, diff, verified };
   renderResult(cfResult);
 }
 
@@ -709,9 +809,13 @@ function renderResult(r) {
   ].map(([label, val]) =>
     `<div class="cf-row"><span class="cf-row-label">${label}</span><span class="cf-row-val ${colorCls(val)}">${fmt(val)}</span></div>`
   ).join('');
+  // 調整項目（手入力）
+  document.getElementById('rows-adjustments').innerHTML = (r.adjustments || []).map((a, i) =>
+    `<div class="cf-row"><span class="cf-row-label">${escapeHtml(a.label)}<button class="adj-del-btn" title="この調整項目を削除" onclick="removeAdjustment(${i})">✕ 削除</button></span><span class="cf-row-val ${colorCls(a.amount)}">${fmt(a.amount)}</span></div>`
+  ).join('');
   setSection('operating', r.operatingCF);
 
-  const invVal = r.fixedAsset !== null ? -Math.abs(r.fixedAsset) : null;
+  const invVal = r.fixedAsset !== null ? -r.fixedAsset : null;
   document.getElementById('rows-investing').innerHTML =
     `<div class="cf-row"><span class="cf-row-label">${r.fixedAsset!==null?'有形固定資産の取得':'（未設定）'}</span><span class="cf-row-val ${invVal!==null?colorCls(invVal):''}">${invVal!==null?fmt(invVal):'—'}</span></div>`;
   setSection('investing', r.investingCF);
@@ -734,6 +838,25 @@ function renderResult(r) {
   ).join('');
 }
 
+// ── 調整項目（営業活動CF・手入力） ─────────────────────────────────
+function addAdjustment() {
+  const labelEl  = document.getElementById('adj-label-input');
+  const amountEl = document.getElementById('adj-amount-input');
+  const label  = labelEl.value.trim();
+  const amount = parseFloat(amountEl.value);
+  if (!label) { alert('調整項目名を入力してください。'); return; }
+  if (isNaN(amount)) { alert('金額を数値で入力してください。'); return; }
+  adjustments.push({ label, amount });
+  labelEl.value = '';
+  amountEl.value = '';
+  runCalc(); // 合計・検証を再計算して再描画
+}
+
+function removeAdjustment(idx) {
+  adjustments.splice(idx, 1);
+  runCalc();
+}
+
 function setSection(name, val) {
   document.getElementById('badge-' + name).textContent = fmt(val);
   document.getElementById('badge-' + name).className = 'cf-section-badge ' + colorCls(val);
@@ -754,10 +877,11 @@ function exportExcel() {
     ['　売上債権の増減額',     r.arChange],
     ['　棚卸資産の増減額',     r.invChange],
     ['　仕入債務の増減額',     r.apChange],
+    ...(r.adjustments || []).map(a => ['　' + a.label, a.amount]),
     ['　営業活動CF 合計',      r.operatingCF],
     [],
     ['■ 投資活動によるキャッシュフロー'],
-    ['　有形固定資産の取得',   r.fixedAsset!==null ? -Math.abs(r.fixedAsset) : ''],
+    ['　有形固定資産の取得',   r.fixedAsset!==null ? -r.fixedAsset : ''],
     ['　投資活動CF 合計',      r.investingCF],
     [],
     ['■ 財務活動によるキャッシュフロー'],

@@ -12,3 +12,12 @@ const body = fs.readFileSync(src, 'utf8')
 
 fs.writeFileSync(dest, banner + body)
 console.log(`sync:web — ${path.relative(process.cwd(), src)} → ${path.relative(process.cwd(), dest)}`)
+
+// src/vendor/（xlsx等のベンダースクリプト）をリポジトリルートの vendor/ にもコピーする。
+// ルート index.html（Web公開用）からの相対パス `vendor/...` を解決するため。
+const vendorSrc = path.join(__dirname, '..', 'src', 'vendor')
+const vendorDest = path.join(__dirname, '..', 'vendor')
+if (fs.existsSync(vendorSrc)) {
+  fs.cpSync(vendorSrc, vendorDest, { recursive: true })
+  console.log(`sync:web — ${path.relative(process.cwd(), vendorSrc)} → ${path.relative(process.cwd(), vendorDest)}`)
+}
