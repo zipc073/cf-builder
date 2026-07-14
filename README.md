@@ -71,11 +71,29 @@ cf-builder/
 ├── main.js          # Electronのメインプロセス（ウィンドウ制御）
 ├── package.json     # ビルド設定
 ├── src/
-│   └── index.html   # アプリ本体（CF計算ツールのUI）
+│   └── index.html   # アプリ本体（CF計算ツールのUI）※編集はここだけ
+├── index.html        # Web公開用コピー（自動生成・直接編集しない）
+├── scripts/
+│   └── sync-web.js  # src/index.html → index.html への同期スクリプト
 └── assets/
     ├── icon.png     # アプリアイコン（PNG）
     └── icon.ico     # アプリアイコン（Windows用・任意）
 ```
+
+### 本体とWeb公開用ファイルの同期について
+
+アプリのUI/ロジックは **`src/index.html` が唯一の編集対象**です。
+ルート直下の `index.html`（https://cf-builder.manabu.club/ にデプロイされるファイル）は
+`src/index.html` から自動生成されるコピーなので、直接編集しないでください。
+
+`src/index.html` を編集したら、以下のいずれかで同期します。
+
+```
+npm run sync:web
+```
+
+`npm run build:win` / `npm run build:mac` を実行すると、ビルド前に自動で `sync:web` が走ります。
+同期後、変更されたルートの `index.html` をコミット・デプロイしてください。
 
 ---
 

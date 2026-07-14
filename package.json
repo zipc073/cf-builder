@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "sync:web": "node scripts/sync-web.js",
+    "prebuild:win": "npm run sync:web",
     "build:win": "electron-builder --win portable",
+    "prebuild:mac": "npm run sync:web",
     "build:mac": "electron-builder --mac"
   },
   "devDependencies": {
